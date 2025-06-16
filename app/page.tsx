@@ -1,113 +1,199 @@
-import Image from "next/image";
+// app/page.tsx
 
-export default function Home() {
+'use client'; // Dies ist wichtig für Client-Komponenten im App Router
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // Wichtig: next/navigation für App Router
+
+export default function HomePage() {
+  const [username, setUsername] = useState<string>('');
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(false); // State für den Bearbeitungsmodus des Namens
+  const [showJoinInput, setShowJoinInput] = useState<boolean>(false); // State für Sichtbarkeit des Join-Inputs
+  const [joinGameCode, setJoinGameCode] = useState<string>(''); // State für den eingegebenen Gruppen-Code
+
+  const router = useRouter();
+
+  useEffect(() => {
+    // Dieser Effekt läuft einmalig beim Laden der Komponente (im Browser)
+    if (typeof window !== 'undefined') {
+      const storedUsername = localStorage.getItem('mixit_username');
+      let storedUserId = localStorage.getItem('mixit_user_id');
+
+      if (storedUsername) {
+        setUsername(storedUsername);
+        setIsEditing(false); // Wenn Name gefunden, nicht im Bearbeitungsmodus starten
+      } else {
+        setIsEditing(true); // Wenn kein Name gefunden, direkt im Bearbeitungsmodus starten
+      }
+
+      if (!storedUserId) {
+        // Wenn keine User-ID gespeichert ist, generiere eine neue
+        const newUserId = crypto.randomUUID(); // Sichere UUID-Generierung
+        localStorage.setItem('mixit_user_id', newUserId);
+        storedUserId = newUserId; // Aktualisiere die Variable für den aktuellen Render
+        console.log('Generated new User ID:', newUserId);
+      } else {
+        console.log('Existing User ID:', storedUserId);
+      }
+      setUserId(storedUserId); // Setze den userId State
+    }
+  }, []); // Leeres Array als Abhängigkeit bedeutet: nur einmal beim Mounten ausführen
+
+  // --- Event-Handler für den Benutzernamen ---
+  const handleUsernameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setUsername(event.target.value);
+  };
+
+  const handleSaveUsername = () => {
+    if (username.trim()) {
+      localStorage.setItem('mixit_username', username.trim());
+      alert(`Spielername "${username.trim()}" gespeichert!`); // Temporärer Alert
+      setIsEditing(false); // Nach dem Speichern Bearbeitungsmodus verlassen
+    } else {
+      alert('Bitte gib einen Spielernamen ein.'); // Temporärer Alert
+    }
+  };
+
+  const handleEditUsername = () => {
+    setIsEditing(true); // Bearbeitungsmodus aktivieren
+  };
+
+  // --- Event-Handler für Gruppenaktionen ---
+  const handleCreateGroup = () => {
+    // Grundlegende Validierung vor Backend-Call
+    if (!username.trim() || !userId) {
+      alert('Bitte gib zuerst einen Spielernamen ein und stelle sicher, dass deine ID generiert wurde.');
+      setIsEditing(true); // Ggf. Bearbeitungsmodus öffnen, damit Name eingegeben werden kann
+      return;
+    }
+    console.log(`Gruppe erstellen für User: ${username} (ID: ${userId})`);
+    alert(`Gruppe wird erstellt für ${username}! (Noch keine Backend-Integration)`); // Temporärer Alert
+    // Später: API-Call zum Backend, z.B. fetch('/api/games/create', ...)
+    // router.push('/lobby/new'); // Beispiel-Weiterleitung nach erfolgreicher Erstellung
+  };
+
+  const handleJoinGroup = () => {
+    // Grundlegende Validierung
+    if (!username.trim() || !userId) {
+      alert('Bitte gib zuerst einen Spielernamen ein und stelle sicher, dass deine ID generiert wurde.');
+      setIsEditing(true);
+      return;
+    }
+    setShowJoinInput(true); // Eingabefeld für den Code anzeigen
+  };
+
+  const handleJoinGroupCodeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setJoinGameCode(event.target.value);
+  };
+
+  const handleSubmitJoinGroupCode = () => {
+    if (joinGameCode.trim()) {
+      // Hier würde später der API-Call zum Backend erfolgen
+      console.log(`Versuche, Gruppe beizutreten mit Code: ${joinGameCode.trim()} für User: ${username} (ID: ${userId})`);
+      alert(`Versuche, Gruppe beizutreten: ${joinGameCode.trim()} (Noch keine Backend-Integration)`); // Temporärer Alert
+      // Später: API-Call zum Backend, z.B. fetch(`/api/games/join`, { method: 'POST', body: JSON.stringify({ gameCode: joinGameCode, userId, username }) })
+      // router.push(`/lobby/${joinGameCode.trim()}`); // Beispiel-Weiterleitung
+    } else {
+      alert('Bitte gib einen Gruppen-Code ein.'); // Temporärer Alert
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-mixit-dark text-mixit-light-yellow p-4">
+      <h1 className="text-5xl md:text-7xl font-bold mb-8 text-mixit-orange drop-shadow-lg">
+        Mixit
+      </h1>
+
+      <div className="bg-mixit-green p-8 rounded-lg shadow-xl max-w-md w-full">
+        <h2 className="text-2xl font-semibold mb-6 text-center text-mixit-light-yellow">
+          Dein Spielername
+        </h2>
+
+        {/* Konditionelles Rendering basierend auf isEditing State für den Namen */}
+        {isEditing ? (
+          // Bearbeitungsmodus: Zeige Input und Speichern-Button für den Namen
+          <>
+            <div className="mb-4">
+              <label htmlFor="username" className="block text-mixit-light-yellow text-lg font-medium mb-2">
+                Gib deinen Namen ein:
+              </label>
+              <input
+                type="text"
+                id="username"
+                value={username}
+                onChange={handleUsernameChange}
+                placeholder="Dein Name"
+                className="w-full p-3 rounded-md bg-mixit-dark-orange/20 text-mixit-light-yellow placeholder-mixit-light-yellow/70 border border-mixit-dark-orange focus:outline-none focus:ring-2 focus:ring-mixit-orange"
+                maxLength={20}
+              />
+            </div>
+
+            <button
+              onClick={handleSaveUsername}
+              className="w-full bg-mixit-dark-orange hover:bg-mixit-orange transition-colors duration-200 text-white font-bold py-3 px-6 rounded-md shadow-lg transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-mixit-light-yellow"
+            >
+              Namen speichern
+            </button>
+          </>
+        ) : (
+          // Ansichtsmodus: Zeige nur Namen und "Namen ändern", "Gruppe erstellen", "Gruppe beitreten" Buttons
+          <div className="text-center">
+            <p className="text-mixit-light-yellow text-3xl font-bold mb-6">
+              {username}
+            </p>
+            <button
+              onClick={handleEditUsername}
+              className="w-full bg-mixit-dark-orange hover:bg-mixit-orange transition-colors duration-200 text-white font-bold py-3 px-6 rounded-md shadow-lg transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-mixit-light-yellow mb-4" // Margin unten hinzugefügt
+            >
+              Namen ändern
+            </button>
+
+            {/* Buttons für Gruppe erstellen/beitreten - nur sichtbar, wenn Name gespeichert */}
+            <button
+              onClick={handleCreateGroup}
+              className="w-full bg-mixit-orange hover:bg-mixit-dark-orange transition-colors duration-200 text-white font-bold py-3 px-6 rounded-md shadow-lg transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-mixit-light-yellow mb-4"
+            >
+              Gruppe erstellen
+            </button>
+
+            <button
+              onClick={handleJoinGroup}
+              className="w-full bg-mixit-orange hover:bg-mixit-dark-orange transition-colors duration-200 text-white font-bold py-3 px-6 rounded-md shadow-lg transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-mixit-light-yellow mb-4"
+            >
+              Gruppe beitreten
+            </button>
+
+            {/* Eingabefeld und Button zum Beitreten per Code, nur sichtbar wenn 'Gruppe beitreten' geklickt wurde */}
+            {showJoinInput && (
+              <div className="mt-4">
+                <label htmlFor="joinCode" className="block text-mixit-light-yellow text-lg font-medium mb-2">
+                  Gruppen-Code eingeben:
+                </label>
+                <input
+                  type="text"
+                  id="joinCode"
+                  value={joinGameCode}
+                  onChange={handleJoinGroupCodeChange}
+                  placeholder="UUID des Spiels"
+                  className="w-full p-3 rounded-md bg-mixit-dark-orange/20 text-mixit-light-yellow placeholder-mixit-light-yellow/70 border border-mixit-dark-orange focus:outline-none focus:ring-2 focus:ring-mixit-orange mb-4"
+                />
+                <button
+                  onClick={handleSubmitJoinGroupCode}
+                  className="w-full bg-mixit-dark-orange hover:bg-mixit-orange transition-colors duration-200 text-white font-bold py-3 px-6 rounded-md shadow-lg transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-mixit-light-yellow"
+                >
+                  Beitreten
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Die User ID Anzeige bleibt immer sichtbar, unabhängig vom Bearbeitungsmodus */}
+        <p className="mt-8 text-mixit-light-yellow text-opacity-80 text-sm text-center">
+          Deine einzigartige ID: <span className="font-mono text-xs">{userId || 'Wird geladen...'}</span>
         </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
 }
