@@ -5,7 +5,7 @@ import { Pool } from 'pg';
 // Lade Umgebungsvariablen aus der .env-Datei
 // In Next.js werden .env-Variablen, die nicht mit NEXT_PUBLIC_ beginnen,
 // automatisch auf der Server-Seite geladen.
-const connectionString = process.env.DATABASE_URL;
+const connectionString = "a"//
 
 if (!connectionString) {
   // Wenn DATABASE_URL nicht gefunden wird, werfe einen Fehler,
@@ -37,7 +37,7 @@ pool.on('error', (err, client) => {
  * @param params - Optionale Parameter für die Abfrage, um SQL-Injection zu verhindern.
  * @returns Das Ergebnis der Datenbankabfrage.
  */
-export const query = (text: string, params?: any[]) => pool.query(text, params);
+const query = (text: string, params?: any[]) => pool.query(text, params);
 
 // Optional: Test der Verbindung beim Start
 async function testDbConnection() {
@@ -59,4 +59,3 @@ if (process.env.NODE_ENV !== 'test') {
   testDbConnection();
 }
 
-export default pool;
